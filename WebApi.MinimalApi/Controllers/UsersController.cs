@@ -101,7 +101,7 @@ public class UsersController : Controller
 
         patchDocument.ApplyTo(modelToPatch, ModelState);
         TryValidateModel(modelToPatch);
-        
+
         if (!ModelState.IsValid)
             return UnprocessableEntity(ModelState);
 
@@ -109,5 +109,26 @@ public class UsersController : Controller
         userRepository.Update(entity);
 
         return NoContent();
+    }
+
+    [HttpDelete("{userId}")]
+    public IActionResult DeleteUser([FromRoute] string userId)
+    {
+        if (!Guid.TryParse(userId, out var id) || userRepository.FindById(id) is null)
+            return NotFound();
+
+        userRepository.Delete(id);
+        return NoContent();
+    }
+
+    [HttpHead("{userId}")]
+    [Produces("application/json", "application/xml")]
+    public IActionResult HeadUser([FromRoute] Guid userId)
+    {
+        var isExists = userRepository.FindById(userId) is not null;
+        Response.Body = Stream.Null;
+        return isExists
+            ? Ok(isExists)
+            : NotFound();
     }
 }
