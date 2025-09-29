@@ -18,7 +18,7 @@ public class UsersController : Controller
         this.mapper = mapper;
     }
 
-    [HttpGet("{userId}")]
+    [HttpGet("{userId}", Name = nameof(GetUserById))]
     [Produces("application/json", "application/xml")]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
@@ -35,6 +35,7 @@ public class UsersController : Controller
     }
 
     [HttpPost]
+    [Produces("application/json", "application/xml")]
     public IActionResult CreateUser([FromBody] CreateUserDto? user)
     {
         if (user is null) return BadRequest();

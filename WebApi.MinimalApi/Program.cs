@@ -34,13 +34,11 @@ builder.Services.AddAutoMapper(cfg =>
         .ForMember(d => d.FullName, opt => opt.MapFrom(s =>
             string.IsNullOrWhiteSpace(s.LastName) && string.IsNullOrWhiteSpace(s.FirstName)
                 ? null
-                : $"{s.LastName} {s.FirstName}".Trim()));
+                : $"{s.LastName} {s.FirstName}"));
 
     cfg.CreateMap<CreateUserDto, UserEntity>()
-        .ForMember(d => d.Id, o => o.Ignore())
-        .ForMember(d => d.FirstName, o => o.MapFrom(s => string.IsNullOrWhiteSpace(s.FirstName) ? "John" : s.FirstName))
-        .ForMember(d => d.LastName, o => o.MapFrom(s => string.IsNullOrWhiteSpace(s.LastName) ? "Doe" : s.LastName));
-}, new System.Reflection.Assembly[0]);
+        .ForMember(d => d.Id, o => o.Ignore());
+}, Array.Empty<Assembly>());
 
 
 var app = builder.Build();
