@@ -31,13 +31,14 @@ builder.Services.AddControllers(options =>
 builder.Services.AddAutoMapper(cfg =>
 {
     cfg.CreateMap<UserEntity, UserDto>()
-        .ForMember(d => d.FullName, opt => opt.MapFrom(s =>
-            string.IsNullOrWhiteSpace(s.LastName) && string.IsNullOrWhiteSpace(s.FirstName)
-                ? null
-                : $"{s.LastName} {s.FirstName}"));
+        .ForMember(dest => dest.FullName,
+            opt => opt.MapFrom(src => src.FirstName + " " + src.LastName));
 
-    cfg.CreateMap<CreateUserDto, UserEntity>()
-        .ForMember(d => d.Id, o => o.Ignore());
+    cfg.CreateMap<CreateUserDto, UserEntity>();
+    cfg.CreateMap<UpdateUserDto, UserEntity>();
+    cfg.CreateMap<UserEntity, UpdateUserDto>();
+    cfg.CreateMap<UpdateUserDto, CreateUserDto>();
+
 }, Array.Empty<Assembly>());
 
 

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.MinimalApi.Domain;
 using WebApi.MinimalApi.Models;
@@ -11,14 +12,16 @@ public class UsersController : Controller
 {
     private readonly IUserRepository userRepository;
     private readonly IMapper mapper;
+    private readonly ILogger<UsersController> logger;
 
-    public UsersController(IUserRepository userRepository, IMapper mapper)
+    public UsersController(IUserRepository userRepository, IMapper mapper, ILogger<UsersController> logger)
     {
         this.userRepository = userRepository;
         this.mapper = mapper;
+        this.logger = logger;
     }
 
-    [HttpGet("{userId}", Name = nameof(GetUserById))]
+    [HttpGet("{userId:guid}", Name = nameof(GetUserById))]
     [Produces("application/json", "application/xml")]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
@@ -38,7 +41,8 @@ public class UsersController : Controller
     [Produces("application/json", "application/xml")]
     public IActionResult CreateUser([FromBody] CreateUserDto? user)
     {
-        if (user is null) return BadRequest();
+        if (user is null)
+            return BadRequest();
 
         if (string.IsNullOrWhiteSpace(user.Login))
             ModelState.AddModelError("Login", "Login is required.");
@@ -46,23 +50,64 @@ public class UsersController : Controller
             ModelState.AddModelError("Login", "Login must contain only letters and digits.");
 
         if (!ModelState.IsValid)
-        {
-            var errors = new
-            {
-                login = ModelState.ContainsKey("Login")
-                    ? ModelState["Login"].Errors.Select(e => string.IsNullOrEmpty(e.ErrorMessage) ? "Invalid value." : e.ErrorMessage)
-                    : Enumerable.Empty<string>()
-            };
-            return StatusCode(422, errors);
-        }
+            return UnprocessableEntity(ModelState);
 
         var entity = mapper.Map<UserEntity>(user);
-        userRepository.Insert(entity);
+        var created = userRepository.Insert(entity);
 
         return CreatedAtRoute(
             routeName: nameof(GetUserById),
-            routeValues: new { userId = entity.Id },
-            value: entity.Id
+            routeValues: new { userId = created.Id },
+            value: created.Id
         );
+    }
+
+    [HttpPut("{userId}")]
+    [Produces("application/json", "application/xml")]
+    public IActionResult UpdateUser([FromRoute] string userId, [FromBody] UpdateUserDto? user)
+    {
+        if (!Guid.TryParse(userId, out var id) || user is null)
+            return BadRequest();
+
+        if (!ModelState.IsValid)
+            return UnprocessableEntity(ModelState);
+
+        var entity = userRepository.FindById(id);
+        if (entity is null)
+            return CreateUser(mapper.Map<CreateUserDto>(user));
+
+        mapper.Map(user, entity);
+        userRepository.Update(entity);
+
+        return NoContent();
+    }
+
+    [HttpPatch("{userId}")]
+    [Consumes("application/json-patch+json")]
+    [Produces("application/json", "application/xml")]
+    public IActionResult PartiallyUpdateUser([FromBody] JsonPatchDocument<UpdateUserDto>? patchDocument, [FromRoute] string userId)
+    {
+        if (patchDocument is null)
+            return BadRequest();
+
+        if (!Guid.TryParse(userId, out var id))
+            return NotFound();
+
+        var entity = userRepository.FindById(id);
+        if (entity is null)
+            return NotFound();
+
+        var modelToPatch = mapper.Map<UpdateUserDto>(entity);
+
+        patchDocument.ApplyTo(modelToPatch, ModelState);
+        TryValidateModel(modelToPatch);
+        
+        if (!ModelState.IsValid)
+            return UnprocessableEntity(ModelState);
+
+        mapper.Map(modelToPatch, entity);
+        userRepository.Update(entity);
+
+        return NoContent();
     }
 }
