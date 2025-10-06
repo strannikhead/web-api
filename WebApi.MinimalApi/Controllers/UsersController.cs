@@ -9,6 +9,7 @@ namespace WebApi.MinimalApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Produces("application/json", "application/xml")]
 public class UsersController : Controller
 {
     private readonly IUserRepository userRepository;
@@ -23,7 +24,6 @@ public class UsersController : Controller
     }
 
     [HttpGet("{userId:guid}", Name = nameof(GetUserById))]
-    [Produces("application/json", "application/xml")]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
         var user = userRepository.FindById(userId);
@@ -39,7 +39,6 @@ public class UsersController : Controller
     }
 
     [HttpPost]
-    [Produces("application/json", "application/xml")]
     public IActionResult CreateUser([FromBody] CreateUserDto? user)
     {
         if (user is null)
@@ -64,7 +63,6 @@ public class UsersController : Controller
     }
 
     [HttpPut("{userId}")]
-    [Produces("application/json", "application/xml")]
     public IActionResult UpdateUser([FromRoute] string userId, [FromBody] UpdateUserDto? user)
     {
         if (!Guid.TryParse(userId, out var id) || user is null)
@@ -84,8 +82,6 @@ public class UsersController : Controller
     }
 
     [HttpPatch("{userId}")]
-    [Consumes("application/json-patch+json")]
-    [Produces("application/json", "application/xml")]
     public IActionResult PartiallyUpdateUser([FromBody] JsonPatchDocument<UpdateUserDto>? patchDocument, [FromRoute] string userId)
     {
         if (patchDocument is null)
@@ -123,7 +119,6 @@ public class UsersController : Controller
     }
 
     [HttpHead("{userId}")]
-    [Produces("application/json", "application/xml")]
     public IActionResult HeadUser([FromRoute] Guid userId)
     {
         var isExists = userRepository.FindById(userId) is not null;
@@ -134,7 +129,6 @@ public class UsersController : Controller
     }
 
     [HttpGet]
-    [Produces("application/json", "application/xml")]
     public IActionResult GetUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         pageNumber = Math.Max(1, pageNumber);
@@ -168,7 +162,6 @@ public class UsersController : Controller
     }
 
     [HttpOptions]
-    [Produces("application/json", "application/xml")]
     public IActionResult Options()
     {
         Response.Headers.Append("Allow", "GET, POST, OPTIONS");
